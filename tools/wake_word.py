@@ -695,11 +695,32 @@ class _SherpaKwsEngine(_Engine):
 
         phrases = list(phrase_map)
         # Runtime tokenization of the arbitrary phrases — the open-vocab core.
+        # The tokenizer type follows the model: models shipping bpe.model use
+        # BPE ("hey hermes"); the zh-en mixed model ships en.phone (CMU
+        # lexicon) + Chinese pinyin tokens and uses phone+ppinyin so mixed
+        # phrases like "cosmos 注意" work.
+        import sherpa_onnx  # noqa: F401 (re-import safe; already imported above)
+
+        _tokenizer_args: Dict[str, Any] = {}
+        if (d / "bpe.model").exists():
+            _tokenizer_type = "bpe"
+            _tokenizer_args["bpe_model"] = str(d / "bpe.model")
+        elif (d / "en.phone").exists():
+            _tokenizer_type = "phone+ppinyin"
+            _tokenizer_args["lexicon"] = str(d / "en.phone")
+            # phone+ppinyin needs pypinyin for Chinese -> pinyin conversion.
+            try:
+                import pypinyin  # noqa: F401
+            except ImportError:
+                lazy_deps.ensure("wake.sherpa.pinyin", prompt=False)
+                import pypinyin  # noqa: F401
+        else:
+            _tokenizer_type = "cjkchar"
         tokens = text2token(
             [p.upper() for p in phrases],
             tokens=str(d / "tokens.txt"),
-            tokens_type="bpe",
-            bpe_model=str(d / "bpe.model"),
+            tokens_type=_tokenizer_type,
+            **_tokenizer_args,
         )
         import tempfile
 

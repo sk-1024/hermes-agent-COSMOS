@@ -180,6 +180,9 @@ LAZY_DEPS: dict[str, tuple[str, ...]] = {
         "sounddevice==0.5.5",
         "numpy==2.4.3",
     ),
+    # pypinyin is required by sherpa's phone+ppinyin tokenizer (Chinese
+    # phrases on the zh-en mixed model); not declared by sherpa-onnx itself.
+    "wake.sherpa.pinyin": ("pypinyin==0.55.0",),
     "wake.porcupine": (
         "pvporcupine==4.0.3",
         "sounddevice==0.5.5",
